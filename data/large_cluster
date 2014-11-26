@@ -1,0 +1,28 @@
+cluster_networks:
+ - &network1 {id: network_id_1, name: compute_net, CIDR: 10.0.0.0/24}
+ - &network2 {id: network_id_2, name: storage_net, CIDR: 192.168.0.0/24}
+servers:
+ -  {flavor: &flavor1 {id: 1, name: null, ram: 2048, vcpus: 2},
+    id: server_id_1,
+    image: &image1 {id: image_id_1},
+    networks: [*network1],
+    addresses: []
+    }
+ -  {flavor: &flavor2 {id: 3, name: null, ram: 4096, vcpus: 4},
+    id: server_id_2,
+    image: &image2 {id: image_id_2},
+    networks: [*network1, *network2],
+    addresses: []
+    }
+ - {flavor: *flavor1,
+    id: server_id_3,
+    image: *image1,
+    networks: [*network2],
+    addresses: []
+    }
+ -  {flavor: *flavor2,
+    id: server_id_4,
+    image: *image2,
+    networks: [*network1],
+    addresses: []
+    }

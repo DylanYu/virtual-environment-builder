@@ -1,0 +1,8 @@
+#addresses: [192.168.1.78, 172.100.1.109]
+addresses: []
+flavor: {id: flavor_id_1, name: null, ram: 2048, vcpus: 2}
+id: server_id_1
+image: {id: image_id_1}
+networks:
+ - {id: network_id_1, name: compute_net, CIDR: 10.0.0.0/24}
+ - {id: network_id_2, name: storage_net, CIDR: 192.168.0.0/24}
