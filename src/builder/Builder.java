@@ -1,4 +1,4 @@
-package test;
+package builder;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -25,7 +25,7 @@ import org.openstack4j.model.network.Network;
 import org.openstack4j.openstack.OSFactory;
 import org.yaml.snakeyaml.Yaml;
 
-public class BuildTest {
+public class Builder {
     public static void main(String[] args) throws FileNotFoundException, ConfigurationException {
         Configuration globalConfig = new PropertiesConfiguration("global.properties");
         
