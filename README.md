@@ -1,4 +1,4 @@
-CloudGit
+Virtual Environment Builder
 ========
 
-Version control system for cloud defined environment.
+Automatic virtual environment building system.
