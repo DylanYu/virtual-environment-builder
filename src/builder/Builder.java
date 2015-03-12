@@ -29,8 +29,8 @@ public class Builder {
     public static void main(String[] args) throws FileNotFoundException, ConfigurationException {
         Configuration globalConfig = new PropertiesConfiguration("global.properties");
         
-        InputStream input = new FileInputStream(new File("data/large_cluster"));
-//        InputStream input = new FileInputStream(new File("data/small_cluster"));
+//        InputStream input = new FileInputStream(new File("data/large_cluster"));
+        InputStream input = new FileInputStream(new File("data/small_cluster"));
         ModelCluster cluster = new Yaml().loadAs(input, ModelCluster.class);
         System.out.println(cluster);
         
@@ -41,6 +41,7 @@ public class Builder {
                 .authenticate();
         Tenant tenant = os.identity().tenants().getByName(globalConfig.getString("tenant"));
         
+        /*
         ModelNetwork[] modelNetworks = cluster.getCluster_networks();
         Network[] networks = new Network[modelNetworks.length];
         for (int i = 0; i < modelNetworks.length; i++) {
@@ -56,6 +57,7 @@ public class Builder {
                     .ipVersion(IPVersionType.V4) // required
                     .build());
         }
+        */
         
         Configuration testConfig = new PropertiesConfiguration("test.properties");
         Flavor flavor = os.compute().flavors().get(testConfig.getString("flavor.tiny.id"));
@@ -65,6 +67,7 @@ public class Builder {
         Server[] servers = new Server[modelServers.length];
         for (int i = 0; i < modelServers.length; i++) {
             ModelServer mServer = modelServers[i];
+            /*
             List<String> nets = new LinkedList<String>();
             for (Network createdNet : networks) {
                 for (ModelNetwork selfNetwork : mServer.getNetworks()) {
@@ -72,11 +75,12 @@ public class Builder {
                         nets.add(createdNet.getId());
                 }
             }
+            */
             servers[i] = os.compute().servers().boot(Builders.server()
                     .name(mServer.getId())
                     .flavor(flavor.getId())
                     .image(image.getId())
-                    .networks(nets)
+                    //.networks(nets)
                     .build());
         }
     }
