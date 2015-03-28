@@ -15,11 +15,12 @@ import org.openstack4j.openstack.OSFactory;
 public class Floating {
     public static void main(String[] args) throws ConfigurationException {
         
-        Configuration globalConfig = new PropertiesConfiguration("global.properties");
+        Configuration apiConfig = new PropertiesConfiguration("api.properties");
+        Configuration resourceIdConfig = new PropertiesConfiguration("resource_id.properties");
         OSClient os = OSFactory.builder()
-                .endpoint(globalConfig.getString("auth_uri"))
-                .credentials(globalConfig.getString("user"),globalConfig.getString("password"))
-                .tenantName(globalConfig.getString("tenant"))
+                .endpoint(apiConfig.getString("auth_uri"))
+                .credentials(apiConfig.getString("user"),apiConfig.getString("password"))
+                .tenantName(apiConfig.getString("tenant"))
                 .authenticate();
         //Tenant tenant = os.identity().tenants().getByName(globalConfig.getString("tenant"));
         
@@ -30,8 +31,11 @@ public class Floating {
         //FloatingIP ip = os.compute().floatingIps().allocateIP("nova");
         //System.out.println(ip.toString());
         
-        Server server = os.compute().servers().get("1b09f2ba-09f1-4e99-8824-979e9be4480c");
-        ActionResponse r = os.compute().floatingIps().addFloatingIP(server, "192.168.1.225"); //
+        Server server = os.compute().servers().get(
+                resourceIdConfig.getString("server.test-server.id"));
+        ActionResponse r = os.compute().floatingIps().addFloatingIP(
+                server, 
+                resourceIdConfig.getString("floatingip.test-ip.ip")); //
         System.out.println("associate success? " + r.isSuccess());
         
         //os.compute().floatingIps().deallocateIP(ip.getId());

@@ -31,7 +31,7 @@ import org.yaml.snakeyaml.Yaml;
 public class Builder {
     public static void main(String[] args) throws FileNotFoundException, ConfigurationException {
         Configuration globalConfig = new PropertiesConfiguration("api.properties");
-        Configuration resourceIDConfig = new PropertiesConfiguration("resource_id.properties");
+        Configuration resourceIdConfig = new PropertiesConfiguration("resource_id.properties");
         
 //        InputStream input = new FileInputStream(new File("data/large_cluster"));
         InputStream input = new FileInputStream(new File("data/small_cluster"));
