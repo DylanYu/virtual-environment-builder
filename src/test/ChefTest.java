@@ -8,30 +8,14 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import org.jclouds.ContextBuilder;
-import org.jclouds.chef.ChefApi;
-import org.jclouds.chef.ChefContext;
-import org.jclouds.chef.config.ChefProperties;
-import org.jclouds.chef.domain.BootstrapConfig;
-import org.jclouds.chef.domain.CookbookVersion;
-import org.jclouds.chef.domain.Node;
-import org.jclouds.chef.util.RunListBuilder;
-import org.jclouds.compute.ComputeServiceContext;
-import org.jclouds.domain.LoginCredentials;
-import org.jclouds.scriptbuilder.ScriptBuilder;
-import org.jclouds.scriptbuilder.domain.OsFamily;
-import org.jclouds.scriptbuilder.domain.Statement;
-import org.jclouds.ssh.SshClient;
-
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
 import com.google.common.net.HostAndPort;
-import com.google.inject.Key;
-import com.google.inject.TypeLiteral;
 
 public class ChefTest {
     public static void main(String[] args) throws IOException {
+        /*
      // Get the credentials that will be used to authenticate to the Chef server
         String chefVersion = "chef";
         
@@ -95,5 +79,6 @@ public class ChefTest {
 //        Node node = context.getChefService().createNodeAndPopulateAutomaticAttributes(nodeName, runlist);
 
         chefContext.close();
+        */
     }
 }

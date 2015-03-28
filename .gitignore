@@ -5,4 +5,5 @@
 /lib
 /data
 /credential
-global.properties
+api.properties
+api.local.properties

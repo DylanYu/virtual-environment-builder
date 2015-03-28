@@ -22,16 +22,12 @@ import org.openstack4j.model.identity.Tenant;
 import org.openstack4j.model.image.Image;
 import org.openstack4j.model.network.IPVersionType;
 import org.openstack4j.model.network.Network;
-import org.openstack4j.model.network.Router;
-import org.openstack4j.model.network.RouterInterface;
-import org.openstack4j.model.network.Subnet;
 import org.openstack4j.openstack.OSFactory;
 import org.yaml.snakeyaml.Yaml;
 
-public class Builder {
+public class BuilderNoNeutron {
     public static void main(String[] args) throws FileNotFoundException, ConfigurationException {
         Configuration globalConfig = new PropertiesConfiguration("api.properties");
-        Configuration resourceIDConfig = new PropertiesConfiguration("resource_id.properties");
         
 //        InputStream input = new FileInputStream(new File("data/large_cluster"));
         InputStream input = new FileInputStream(new File("data/small_cluster"));
@@ -46,7 +42,6 @@ public class Builder {
         Tenant tenant = os.identity().tenants().getByName(globalConfig.getString("tenant"));
         
         /*
-        //Router router = os.networking().router().get(resourceIDConfig.getString("router.id"));
         ModelNetwork[] modelNetworks = cluster.getCluster_networks();
         Network[] networks = new Network[modelNetworks.length];
         for (int i = 0; i < modelNetworks.length; i++) {
@@ -55,39 +50,37 @@ public class Builder {
                     .name(mNet.getName())
                     .tenantId(tenant.getId())
                     .build());
-            Subnet subnet = Builders.subnet()
-                            .networkId(networks[i].getId())
-                            .tenantId(tenant.getId())
-                            .cidr(mNet.getCIDR())
-                            .ipVersion(IPVersionType.V4) // required
-                            .build();
-            os.networking().subnet().create(subnet);
+            os.networking().subnet().create(Builders.subnet()
+                    .networkId(networks[i].getId())
+                    .tenantId(tenant.getId())
+                    .cidr(mNet.getCIDR())
+                    .ipVersion(IPVersionType.V4) // required
+                    .build());
         }
         */
         
-        Flavor flavor = os.compute().flavors().get(resourceIDConfig.getString("flavor.tiny.id"));
-        Image image = os.images().get(resourceIDConfig.getString("image.cirros.id"));
-        
-        // Define networks where instances will be attached to
-        List<String> nets = new LinkedList<String>();
-        /*
-        for (Network createdNet : networks) {
-            for (ModelNetwork selfNetwork : mServer.getNetworks()) {
-                if (selfNetwork.getName().equals(createdNet.getName()))
-                    nets.add(createdNet.getId());
-            }
-        }*/
-        nets.add(resourceIDConfig.getString("network.network1.id"));
+        Configuration testConfig = new PropertiesConfiguration("resource_id.properties");
+        Flavor flavor = os.compute().flavors().get(testConfig.getString("flavor.tiny.id"));
+        Image image = os.images().get(testConfig.getString("image.cirros.id"));
         
         ModelServer[] modelServers = cluster.getServers();
         Server[] servers = new Server[modelServers.length];
         for (int i = 0; i < modelServers.length; i++) {
             ModelServer mServer = modelServers[i];
+            /*
+            List<String> nets = new LinkedList<String>();
+            for (Network createdNet : networks) {
+                for (ModelNetwork selfNetwork : mServer.getNetworks()) {
+                    if (selfNetwork.getName().equals(createdNet.getName()))
+                        nets.add(createdNet.getId());
+                }
+            }
+            */
             servers[i] = os.compute().servers().boot(Builders.server()
                     .name(mServer.getId())
                     .flavor(flavor.getId())
                     .image(image.getId())
-                    .networks(nets)
+                    //.networks(nets)
                     .build());
         }
     }
