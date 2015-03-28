@@ -65,8 +65,8 @@ public class Builder {
         }
         */
         
-        Flavor flavor = os.compute().flavors().get(resourceIDConfig.getString("flavor.tiny.id"));
-        Image image = os.images().get(resourceIDConfig.getString("image.cirros.id"));
+        Flavor flavor = os.compute().flavors().get(resourceIdConfig.getString("flavor.tiny.id"));
+        Image image = os.images().get(resourceIdConfig.getString("image.cirros.id"));
         
         // Define networks where instances will be attached to
         List<String> nets = new LinkedList<String>();
@@ -77,7 +77,7 @@ public class Builder {
                     nets.add(createdNet.getId());
             }
         }*/
-        nets.add(resourceIDConfig.getString("network.network1.id"));
+        nets.add(resourceIdConfig.getString("network.network1.id"));
         
         ModelServer[] modelServers = cluster.getServers();
         Server[] servers = new Server[modelServers.length];
