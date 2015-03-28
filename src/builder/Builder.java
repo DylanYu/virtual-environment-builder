@@ -34,7 +34,8 @@ public class Builder {
         Configuration resourceIdConfig = new PropertiesConfiguration("resource_id.properties");
         
 //        InputStream input = new FileInputStream(new File("data/large_cluster"));
-        InputStream input = new FileInputStream(new File("data/small_cluster"));
+//        InputStream input = new FileInputStream(new File("data/small_cluster"));
+        InputStream input = new FileInputStream(new File(args[1])); // index [1] because we need to use [0] to define main class entry
         ModelCluster cluster = new Yaml().loadAs(input, ModelCluster.class);
         System.out.println(cluster);
         
