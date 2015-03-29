@@ -113,15 +113,97 @@ public class RemoteExecute {
         session.disconnect();
     }
     
+    public static void jumpExecute(String command, String jumpHost, String jumpUser, String jumpPw,
+            String targetHost, String targetUser, String targetPw) {
+        try {
+            jumpExecute(command,
+                    jumpHost,
+                    jumpUser,
+                    jumpPw,
+                    targetHost,
+                    targetUser,
+                    targetPw,
+                    22);
+        } catch (JSchException | IOException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    // ssh to jump box, then ssh from jump box to target machine, then execute command
+    public static void jumpExecute(String command, String jumpHost, String jumpUser, String jumpPw,
+            String targetHost, String targetUser, String targetPw, int port) throws JSchException, IOException {
+        String finalCommand = String.format("sshpass -p '%s' ssh -o StrictHostKeyChecking=no %s@%s \"%s\"",
+                targetPw,
+                targetUser,
+                targetHost,
+                command);
+        execute(finalCommand, jumpHost, jumpUser, jumpPw, port);
+    }
+    
+    public static void jumpSudoExecute(String command, String jumpHost, String jumpUser, String jumpPw,
+            String targetHost, String targetPw) {
+        try {
+            jumpSudoExecute(command,
+                    jumpHost,
+                    jumpUser,
+                    jumpPw,
+                    targetHost,
+                    targetPw,
+                    22);
+        } catch (JSchException | IOException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    // use "root" as target user to gain sudo permission, which is different from sudoExecute()
+    public static void jumpSudoExecute(String command, String jumpHost, String jumpUser, String jumpPw,
+            String targetHost, String targetPw, int port) throws JSchException, IOException {
+        String finalCommand = String.format("sshpass -p '%s' ssh -o StrictHostKeyChecking=no %s@%s \"%s\"",
+                targetPw,
+                "root",
+                targetHost,
+                command);
+        execute(finalCommand, jumpHost, jumpUser, jumpPw, port);
+    }
+    
     public static void main(String[] args) throws ConfigurationException, JSchException, IOException {
         Configuration config = new PropertiesConfiguration("host.properties");
 //        String command = "apt-get install -y sshpass";
-        String command = String.format("echo %s >> script.sh", "test");
-        String host = config.getString("wshost.ip"); 
-        String user = config.getString("wshost.user"); 
-        String pw = config.getString("wshost.pw"); 
+//        String command = String.format("echo %s >> script.sh", "test");
+//        String host = config.getString("wshost.ip"); 
+//        String user = config.getString("wshost.user"); 
+//        String pw = config.getString("wshost.pw");
         
-        execute(command, host, user, pw);
+//        execute(command, host, user, pw);
 //        sudoExecute(command, host, user, pw);
+        
+//        String command = String.format("echo %s >> script.sh", "test");
+//        String jumpHost = config.getString("wshost.ip"); 
+//        String jumpUser = config.getString("wshost.user"); 
+//        String jumpPw = config.getString("wshost.pw");
+////        String targetHost = config.getString("example_vm.ubuntu-desktop.ip");
+//        String targetHost = "114.212.189.117";
+//        String targetUser = config.getString("vm.ubuntu-desktop.user"); 
+//        String targetPw = config.getString("vm.ubuntu-desktop.pw"); 
+//        jumpExecute(command,
+//            jumpHost,
+//            jumpUser,
+//            jumpPw,
+//            targetHost,
+//            targetUser,
+//            targetPw);
+        
+        String command = String.format("chmod 666 /home/nju/test.txt");
+        String jumpHost = config.getString("wshost.ip"); 
+        String jumpUser = config.getString("wshost.user"); 
+        String jumpPw = config.getString("wshost.pw");
+        String targetHost = config.getString("oshost.ip");
+        String targetPw = config.getString("oshost.pw"); 
+        jumpSudoExecute(command,
+            jumpHost,
+            jumpUser,
+            jumpPw,
+            targetHost,
+            targetPw);
     }
 }
