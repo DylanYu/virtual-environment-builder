@@ -111,6 +111,7 @@ public class Bootstrap {
             }
         }
         
+        final Server server = servers[0]; // TODO understand
         // scp necessary files
         while (os.compute().servers().get(servers[0].getId()).getStatus() != Server.Status.ACTIVE) {
             System.out.println(String.format("wait for server %s booting", servers[0].getName()));
@@ -165,6 +166,92 @@ public class Bootstrap {
                 hostConfig.getString("vm.ubuntu-desktop.user"), 
                 hostConfig.getString("vm.ubuntu-desktop.pw"));
         System.out.println("Installation completed");
+        
+        // delay execute install package & detach floating IP
+        System.out.println("Create cookbook directory...");
+        command = "mkdir /home/nju/cookbooks";
+        RemoteExecute.jumpExecute(
+                command,
+                hostConfig.getString("oshost.ip"), 
+                hostConfig.getString("oshost.user"), 
+                hostConfig.getString("oshost.pw"), 
+                serverAddress.getAddr(), 
+                hostConfig.getString("vm.ubuntu-desktop.user"), 
+                hostConfig.getString("vm.ubuntu-desktop.pw"));
+        System.out.println("Directory created");
+        
+        System.out.println("Transfering cookbooks to server...");
+        ScpFile.scp(hostConfig.getString("oshost.ip"), 
+                hostConfig.getString("oshost.user"), 
+                hostConfig.getString("oshost.pw"), 
+                hostConfig.getString("oshost.cookbook.apache2.path"), 
+                serverAddress.getAddr(), 
+                hostConfig.getString("vm.ubuntu-desktop.user"), 
+                hostConfig.getString("vm.ubuntu-desktop.pw"), 
+                hostConfig.getString("vm.cookbook.path"));
+        System.out.println("Transfer completed");
+        
+        Thread threadApplyCookbooks = new Thread() {
+            @Override
+            public void run () {
+                System.out.println("Applying cookbooks...");
+                Configuration hostConfig = null;
+                try {
+                    hostConfig = new PropertiesConfiguration("host.properties");
+                } catch (ConfigurationException e) {
+                    e.printStackTrace();
+                }
+                Address serverAddress = null;
+                List<? extends Address> addresses = server.getAddresses().getAddresses("private");
+                for (Address address : addresses) {
+                    // Equals, not ==
+                    if (address.getType().equals("floating")) {// skip fixed address
+                        serverAddress = address;
+                        break;
+                    }
+                }
+                String command = "chef-client --local-mode --runlist 'recipe[learn_chef_apache2]'";
+                RemoteExecute.jumpSudoExecuteDelay(
+                        command,
+                        10, // wait for 10 seconds TODO delete
+                        hostConfig.getString("oshost.ip"), 
+                        hostConfig.getString("oshost.user"), 
+                        hostConfig.getString("oshost.pw"), 
+                        serverAddress.getAddr(), 
+                        hostConfig.getString("vm.ubuntu-desktop.user"), 
+                        hostConfig.getString("vm.ubuntu-desktop.pw"));
+                System.out.println("Cookbooks applied");
+            }
+        };
+        
+        //TODO investigate the reason
+        /*
+        Thread threadRemoveFloatingIP = new Thread() {
+            @Override
+            public void run () {
+                System.out.println("Removing floating IP...");
+                Address serverAddress = null;
+                List<? extends Address> addresses = server.getAddresses().getAddresses("private");
+                for (Address address : addresses) {
+                    // Equals, not ==
+                    if (address.getType().equals("floating")) {// skip fixed address
+                        serverAddress = address;
+                        break;
+                    }
+                }
+                ActionResponse r = OS.getClient().compute().floatingIps().removeFloatingIP(server, serverAddress.getAddr());
+                System.out.println("remove floating ip success ? " + r.isSuccess());
+            }
+        };
+        */
+        
+        threadApplyCookbooks.start();
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        //threadRemoveFloatingIP.start(); TODO not started
     }
     
     private static boolean hasAvailableFloatingIP() throws ConfigurationException {

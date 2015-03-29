@@ -217,6 +217,37 @@ public class RemoteExecute {
         return execute(finalCommand, jumpHost, jumpUser, jumpPw, port);
     }
     
+    public static int jumpSudoExecuteDelay(String command, int delay, String jumpHost, String jumpUser, String jumpPw,
+            String targetHost, String targetUser, String targetPw) {
+        try {
+            return jumpSudoExecuteDelay(command,
+                    delay,
+                    jumpHost,
+                    jumpUser,
+                    jumpPw,
+                    targetHost,
+                    targetUser,
+                    targetPw,
+                    22);
+        } catch (JSchException | IOException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+    
+    public static int jumpSudoExecuteDelay(String command, int delay, String jumpHost, String jumpUser, String jumpPw,
+            String targetHost, String targetUser, String targetPw, int port) throws JSchException, IOException {
+        String finalCommand = String.format(
+                "sshpass -p '%s' ssh -o StrictHostKeyChecking=no %s@%s \"sleep %d; echo '%s' | sudo -S %s\"", // sudo -S read password from stand input
+                targetPw,
+                targetUser,
+                targetHost,
+                delay,
+                targetPw,
+                command);
+        return execute(finalCommand, jumpHost, jumpUser, jumpPw, port);
+    }
+    
     public static void main(String[] args) throws ConfigurationException, JSchException, IOException {
         Configuration config = new PropertiesConfiguration("host.properties");
         

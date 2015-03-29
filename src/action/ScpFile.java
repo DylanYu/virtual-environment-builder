@@ -30,7 +30,7 @@ public class ScpFile {
     // first ssh to src host, then execute scp command
     public static void scpInSrc(String srcHost, String srcUser, String srcPw, String srcFilePath,
             String dstHost, String dstUser, String dstPw, String dstFilePath, int port) throws JSchException, IOException {
-        String command = String.format("sshpass -p '%s' scp -o StrictHostKeyChecking=no %s %s@%s:%s",
+        String command = String.format("sshpass -p '%s' scp -r -o StrictHostKeyChecking=no %s %s@%s:%s",
                 dstPw,
                 srcFilePath,
                 dstUser,
@@ -46,7 +46,7 @@ public class ScpFile {
     // first ssh to dst host, then execute scp command
     public static void scpInDst(String srcHost, String srcUser, String srcPw, String srcFilePath,
             String dstHost, String dstUser, String dstPw, String dstFilePath, int port) throws JSchException, IOException {
-        String command = String.format("sshpass -p '%s' scp -o StrictHostKeyChecking=no %s@%s:%s %s",
+        String command = String.format("sshpass -p '%s' scp -r -o StrictHostKeyChecking=no %s@%s:%s %s",
                 srcPw,
                 srcUser,
                 srcHost,
@@ -61,10 +61,23 @@ public class ScpFile {
     
     public static void main(String[] args) throws JSchException, IOException, ConfigurationException {
         Configuration config = new PropertiesConfiguration("host.properties");
+        System.out.println("Transfering cookbooks to server...");
+        ScpFile.scp(config.getString("oshost.ip"), 
+                config.getString("oshost.user"), 
+                config.getString("oshost.pw"), 
+                config.getString("oshost.cookbook.apache2.path"), 
+                "114.212.189.122", 
+                config.getString("vm.ubuntu-desktop.user"), 
+                config.getString("vm.ubuntu-desktop.pw"), 
+                config.getString("vm.cookbook.path"));
+        System.out.println("Transfer completed");
+        
+        /*
         String srcHost = config.getString("wshost.ip"); 
         String srcUser = config.getString("wshost.user"); 
         String srcPw = config.getString("wshost.pw");
-        String srcFilePath = config.getString("wshost.chef_client.path");
+//        String srcFilePath = config.getString("wshost.chef_client.path");
+        String srcFilePath = "/home/nju/cookbooks/learn_chef_apache2";
         String dstHost = config.getString("oshost.ip"); 
         String dstUser = config.getString("oshost.user"); 
         String dstPw = config.getString("oshost.pw"); 
@@ -90,5 +103,6 @@ public class ScpFile {
 //                dstPw,
 //                dstFilePath,
 //                port);
+         */
     }
 }
