@@ -7,3 +7,4 @@
 /credential
 api.properties
 api.local.properties
+host.properties

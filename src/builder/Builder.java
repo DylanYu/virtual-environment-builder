@@ -30,7 +30,7 @@ import org.yaml.snakeyaml.Yaml;
 
 public class Builder {
     public static void main(String[] args) throws FileNotFoundException, ConfigurationException {
-        Configuration globalConfig = new PropertiesConfiguration("api.properties");
+        Configuration apiConfig = new PropertiesConfiguration("api.properties");
         Configuration resourceIdConfig = new PropertiesConfiguration("resource_id.properties");
         
 //        InputStream input = new FileInputStream(new File("data/large_cluster"));
@@ -40,11 +40,11 @@ public class Builder {
         System.out.println(cluster);
         
         OSClient os = OSFactory.builder()
-                .endpoint(globalConfig.getString("auth_uri"))
-                .credentials(globalConfig.getString("user"),globalConfig.getString("password"))
-                .tenantName(globalConfig.getString("tenant"))
+                .endpoint(apiConfig.getString("auth_uri"))
+                .credentials(apiConfig.getString("user"),apiConfig.getString("password"))
+                .tenantName(apiConfig.getString("tenant"))
                 .authenticate();
-        Tenant tenant = os.identity().tenants().getByName(globalConfig.getString("tenant"));
+        Tenant tenant = os.identity().tenants().getByName(apiConfig.getString("tenant"));
         
         /*
         //Router router = os.networking().router().get(resourceIDConfig.getString("router.id"));
