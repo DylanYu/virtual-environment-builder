@@ -18,16 +18,18 @@ import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 
 public class RemoteExecute {
-    public static void execute(String command, String host, String user, String pw) {
+    public static int execute(String command, String host, String user, String pw) {
         try {
-            execute(command, host, user, pw, 22);
+            return execute(command, host, user, pw, 22);
         } catch (JSchException | IOException e) {
             e.printStackTrace();
         }
+        return -1;
     }
     
     // execute command with normal permission
-    public static void execute(String command, String host, String user, String pw, int port) throws JSchException, IOException {
+    public static int execute(String command, String host, String user, String pw, int port) throws JSchException, IOException {
+        /*
         JSch jsch = new JSch();
         Session session = jsch.getSession(user, host, port);
         session.setPassword(pw);
@@ -51,18 +53,60 @@ public class RemoteExecute {
         
         channel.disconnect();
         session.disconnect();
+        */
+        
+        JSch jsch = new JSch();
+        Session session = jsch.getSession(user, host, port);
+        session.setPassword(pw);
+        // REQUIRED
+        Properties config = new Properties();
+        config.put("StrictHostKeyChecking", "no");
+        session.setConfig(config);
+        session.connect();
+        
+        Channel channel = session.openChannel("exec");
+
+        ((ChannelExec) channel).setCommand(command);
+
+        InputStream in = channel.getInputStream();
+        ((ChannelExec) channel).setErrStream(System.err);
+
+        channel.connect();
+
+        byte[] tmp = new byte[1024];
+        while (true) {
+            while (in.available() > 0) {
+                int i = in.read(tmp, 0, 1024);
+                if (i < 0)
+                    break;
+                System.out.print(new String(tmp, 0, i));
+            }
+            if (channel.isClosed()) {
+                System.out.println("exit-status: " + channel.getExitStatus());
+                break;
+            }
+            try {
+                Thread.sleep(1000);
+            } catch (Exception e) {
+            }
+        }
+        int exitStatus = channel.getExitStatus();
+        channel.disconnect();
+        session.disconnect();
+        return exitStatus;
     }
     
-    public static void sudoExecute(String command, String host, String user, String pw) {
+    public static int sudoExecute(String command, String host, String user, String pw) {
         try {
-            sudoExecute(command, host, user, pw, 22);
+            return sudoExecute(command, host, user, pw, 22);
         } catch (JSchException | IOException e) {
             e.printStackTrace();
         }
+        return -1;
     }
     
     // execute command with root permission
-    public static void sudoExecute(String command, String host, String user, String pw, int port) throws JSchException, IOException {
+    public static int sudoExecute(String command, String host, String user, String pw, int port) throws JSchException, IOException {
         JSch jsch = new JSch();
         Session session = jsch.getSession(user, host, port);
         session.setPassword(pw);
@@ -109,14 +153,16 @@ public class RemoteExecute {
             } catch (Exception ee) {
             }
         }
+        int exitStatus = channel.getExitStatus();
         channel.disconnect();
         session.disconnect();
+        return exitStatus;
     }
     
-    public static void jumpExecute(String command, String jumpHost, String jumpUser, String jumpPw,
+    public static int jumpExecute(String command, String jumpHost, String jumpUser, String jumpPw,
             String targetHost, String targetUser, String targetPw) {
         try {
-            jumpExecute(command,
+            return jumpExecute(command,
                     jumpHost,
                     jumpUser,
                     jumpPw,
@@ -127,54 +173,60 @@ public class RemoteExecute {
         } catch (JSchException | IOException e) {
             e.printStackTrace();
         }
+        return -1;
     }
     
     // ssh to jump box, then ssh from jump box to target machine, then execute command
-    public static void jumpExecute(String command, String jumpHost, String jumpUser, String jumpPw,
+    public static int jumpExecute(String command, String jumpHost, String jumpUser, String jumpPw,
             String targetHost, String targetUser, String targetPw, int port) throws JSchException, IOException {
         String finalCommand = String.format("sshpass -p '%s' ssh -o StrictHostKeyChecking=no %s@%s \"%s\"",
                 targetPw,
                 targetUser,
                 targetHost,
                 command);
-        execute(finalCommand, jumpHost, jumpUser, jumpPw, port);
+        return execute(finalCommand, jumpHost, jumpUser, jumpPw, port);
     }
     
-    public static void jumpSudoExecute(String command, String jumpHost, String jumpUser, String jumpPw,
-            String targetHost, String targetPw) {
+    public static int jumpSudoExecute(String command, String jumpHost, String jumpUser, String jumpPw,
+            String targetHost, String targetUser, String targetPw) {
         try {
-            jumpSudoExecute(command,
+            return jumpSudoExecute(command,
                     jumpHost,
                     jumpUser,
                     jumpPw,
                     targetHost,
+                    targetUser,
                     targetPw,
                     22);
         } catch (JSchException | IOException e) {
             e.printStackTrace();
         }
+        return -1;
     }
     
     // use "root" as target user to gain sudo permission, which is different from sudoExecute()
-    public static void jumpSudoExecute(String command, String jumpHost, String jumpUser, String jumpPw,
-            String targetHost, String targetPw, int port) throws JSchException, IOException {
-        String finalCommand = String.format("sshpass -p '%s' ssh -o StrictHostKeyChecking=no %s@%s \"%s\"",
+    public static int jumpSudoExecute(String command, String jumpHost, String jumpUser, String jumpPw,
+            String targetHost, String targetUser, String targetPw, int port) throws JSchException, IOException {
+        String finalCommand = String.format(
+                "sshpass -p '%s' ssh -o StrictHostKeyChecking=no %s@%s \"echo '%s' | sudo -S %s\"", // sudo -S read password from stand input
                 targetPw,
-                "root",
+                targetUser,
                 targetHost,
+                targetPw,
                 command);
-        execute(finalCommand, jumpHost, jumpUser, jumpPw, port);
+        return execute(finalCommand, jumpHost, jumpUser, jumpPw, port);
     }
     
     public static void main(String[] args) throws ConfigurationException, JSchException, IOException {
         Configuration config = new PropertiesConfiguration("host.properties");
+        
 //        String command = "apt-get install -y sshpass";
 //        String command = String.format("echo %s >> script.sh", "test");
-//        String host = config.getString("wshost.ip"); 
-//        String user = config.getString("wshost.user"); 
-//        String pw = config.getString("wshost.pw");
-        
-//        execute(command, host, user, pw);
+        String command = "ping -c1 114.212.189.120";
+        String host = config.getString("wshost.ip"); 
+        String user = config.getString("wshost.user"); 
+        String pw = config.getString("wshost.pw");
+        execute(command, host, user, pw);
 //        sudoExecute(command, host, user, pw);
         
 //        String command = String.format("echo %s >> script.sh", "test");
@@ -182,7 +234,7 @@ public class RemoteExecute {
 //        String jumpUser = config.getString("wshost.user"); 
 //        String jumpPw = config.getString("wshost.pw");
 ////        String targetHost = config.getString("example_vm.ubuntu-desktop.ip");
-//        String targetHost = "114.212.189.117";
+//        String targetHost = "114.212.189.119";
 //        String targetUser = config.getString("vm.ubuntu-desktop.user"); 
 //        String targetPw = config.getString("vm.ubuntu-desktop.pw"); 
 //        jumpExecute(command,
@@ -193,17 +245,22 @@ public class RemoteExecute {
 //            targetUser,
 //            targetPw);
         
-        String command = String.format("chmod 666 /home/nju/test.txt");
-        String jumpHost = config.getString("wshost.ip"); 
-        String jumpUser = config.getString("wshost.user"); 
-        String jumpPw = config.getString("wshost.pw");
-        String targetHost = config.getString("oshost.ip");
-        String targetPw = config.getString("oshost.pw"); 
-        jumpSudoExecute(command,
-            jumpHost,
-            jumpUser,
-            jumpPw,
-            targetHost,
-            targetPw);
+//        String command = String.format("sleep 10; chmod 644 /home/nju/test.txt");
+//        String command = String.format("echo 12345 >> test.txt");
+//        String command = "apt-get remove tilda";
+//        String command = "apt-get update";
+//        String jumpHost = config.getString("wshost.ip"); 
+//        String jumpUser = config.getString("wshost.user"); 
+//        String jumpPw = config.getString("wshost.pw");
+//        String targetHost = config.getString("wshost2.ip");
+//        String targetUser = config.getString("wshost2.user");
+//        String targetPw = config.getString("wshost2.pw"); 
+//        jumpSudoExecute(command,
+//            jumpHost,
+//            jumpUser,
+//            jumpPw,
+//            targetHost,
+//            targetUser,
+//            targetPw);
     }
 }

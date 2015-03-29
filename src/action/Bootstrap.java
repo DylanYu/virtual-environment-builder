@@ -3,9 +3,13 @@ package action;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
+import java.net.Socket;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import model.ModelCluster;
 import model.ModelServer;
@@ -25,9 +29,21 @@ import org.openstack4j.model.image.Image;
 import org.openstack4j.openstack.OSFactory;
 import org.yaml.snakeyaml.Yaml;
 
+import util.Network;
+
+import com.jcraft.jsch.JSchException;
+
 public class Bootstrap {
-    public static void main (String[] args) throws ConfigurationException, FileNotFoundException {
+    public static void main (String[] args) throws ConfigurationException, JSchException, IOException {
+        Configuration hostConfig = new PropertiesConfiguration("host.properties");
         Configuration resourceIdConfig = new PropertiesConfiguration("resource_id.properties");
+        
+        // Clean up instances
+        Set<String> retainedServersId = new HashSet<String>(); 
+        retainedServersId.add(resourceIdConfig.getString("server.test-server.id"));
+        retainedServersId.add(resourceIdConfig.getString("server.occupy-server1.id"));
+        retainedServersId.add(resourceIdConfig.getString("server.occupy-server2.id"));
+        CleanUp.cleanInstances(retainedServersId);
         
 //        InputStream input = new FileInputStream(new File("data/large_cluster"));
 //        InputStream input = new FileInputStream(new File("data/small_cluster"));
@@ -36,8 +52,10 @@ public class Bootstrap {
         System.out.println(cluster);
         
         OSClient os = OS.getClient();
-        Flavor flavor = os.compute().flavors().get(resourceIdConfig.getString("flavor.tiny.id"));
-        Image image = os.images().get(resourceIdConfig.getString("image.cirros.id"));
+//        Flavor flavor = os.compute().flavors().get(resourceIdConfig.getString("flavor.tiny.id"));
+//        Image image = os.images().get(resourceIdConfig.getString("image.cirros.id"));
+        Flavor flavor = os.compute().flavors().get(resourceIdConfig.getString("flavor.small.id"));
+        Image image = os.images().get(resourceIdConfig.getString("image.ubuntu-desktop.id"));
         
         // Define networks where instances will be attached to
         List<String> nets = new LinkedList<String>();
@@ -92,6 +110,61 @@ public class Bootstrap {
                     System.out.println("assigned:" + address);
             }
         }
+        
+        // scp necessary files
+        while (os.compute().servers().get(servers[0].getId()).getStatus() != Server.Status.ACTIVE) {
+            System.out.println(String.format("wait for server %s booting", servers[0].getName()));
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        System.out.println(String.format("server %s is ready", servers[0].getName()));
+        // find address for the server
+        Address serverAddress = null;
+        List<? extends Address> addresses = servers[0].getAddresses().getAddresses("private");
+        for (Address address : addresses) {
+            // Equals, not ==
+            if (address.getType().equals("floating")) {// skip fixed address
+                serverAddress = address;
+                break;
+            }
+        }
+        System.out.println(serverAddress.getAddr());
+        
+        // test whether server is reachable
+        boolean reachable = Network.remotePingTest(
+                hostConfig.getString("oshost.ip"), 
+                hostConfig.getString("oshost.user"), 
+                hostConfig.getString("oshost.pw"), 
+                serverAddress.getAddr());
+//        System.out.println("ping test passed? " + reachable);
+        
+        System.out.println("Transfering necessary files to server...");
+        ScpFile.scp(hostConfig.getString("oshost.ip"), 
+                hostConfig.getString("oshost.user"), 
+                hostConfig.getString("oshost.pw"), 
+                hostConfig.getString("oshost.chef_client.path"), 
+                serverAddress.getAddr(), 
+                hostConfig.getString("vm.ubuntu-desktop.user"), 
+                hostConfig.getString("vm.ubuntu-desktop.pw"), 
+                hostConfig.getString("dst.chef_client.path"));
+        System.out.println("Transfer completed");
+        
+        System.out.println("Installing Chef-client...");
+        String command = String.format("dpkg -i %s/%s", 
+                hostConfig.getString("dst.chef_client.path"), 
+                hostConfig.getString("file.chef_client.name"));
+        RemoteExecute.jumpSudoExecute(
+                command,
+                hostConfig.getString("oshost.ip"), 
+                hostConfig.getString("oshost.user"), 
+                hostConfig.getString("oshost.pw"), 
+                serverAddress.getAddr(), 
+                hostConfig.getString("vm.ubuntu-desktop.user"), 
+                hostConfig.getString("vm.ubuntu-desktop.pw"));
+        System.out.println("Installation completed");
     }
     
     private static boolean hasAvailableFloatingIP() throws ConfigurationException {
